@@ -40,5 +40,15 @@ export default {
     commonjs(),
     terser(),
   ],
-  external: ["react", "react-dom", "@mui/material", "@mui/icons-material"],
+  external: (id) => {
+    // Externalize all peer dependencies and their subpaths
+    const externals = [
+      "react",
+      "react-dom",
+      "prop-types",
+      "@mui/",
+      "@emotion/",
+    ];
+    return externals.some((ext) => id === ext || id.startsWith(ext));
+  },
 };

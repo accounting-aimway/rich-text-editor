@@ -1,11 +1,10 @@
 import React from "react";
 import PropTypes from "prop-types";
-import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
-import FormatIndentIncreaseRoundedIcon from "@mui/icons-material/FormatIndentIncreaseRounded";
-import FormatIndentDecreaseRoundedIcon from "@mui/icons-material/FormatIndentDecreaseRounded";
-import FormatListBulletedRoundedIcon from "@mui/icons-material/FormatListBulletedRounded";
-import FormatListNumberedRoundedIcon from "@mui/icons-material/FormatListNumberedRounded";
 import {
+  FormatIndentIncreaseRounded as FormatIndentIncreaseRoundedIcon,
+  FormatIndentDecreaseRounded as FormatIndentDecreaseRoundedIcon,
+  FormatListBulletedRounded as FormatListBulletedRoundedIcon,
+  FormatListNumberedRounded as FormatListNumberedRoundedIcon,
   FormatBoldRounded,
   FormatItalicRounded,
   FormatUnderlined,
@@ -14,18 +13,9 @@ import {
   FormatClear,
 } from "@mui/icons-material";
 
-import {
-  Box,
-  Button,
-  Divider,
-  IconButton,
-  Tooltip,
-  Menu,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
-} from "@mui/material";
+import { Box, Divider, IconButton, Tooltip } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import { CustomSelect } from "./CustomSelect";
 
 /**
  * Toolbar component for the rich text editor
@@ -38,6 +28,9 @@ export const Toolbar = ({
   currentBlockFormat = "p",
   currentInlineFormats = {},
 }) => {
+  // Get MUI theme from parent
+  const theme = useTheme();
+
   // Define toolbar buttons configuration
   const toolbarButtons = [
     {
@@ -185,34 +178,17 @@ export const Toolbar = ({
       }}
     >
       {/* Heading dropdown */}
-      <FormControl size="small" sx={{ minWidth: 116 }}>
-        <Select
-          labelId="heading-select-label"
-          id="heading-select"
-          value={currentBlockFormat}
-          placeholder="Heading"
-          variant="standard"
-          disableUnderline
-          sx={{
-            minWidth: "max-content",
-            backgroundColor: "transparent",
-            color: "#666",
-            "& .MuiSelect-icon": {
-              color: "#666",
-            },
-          }}
-          onChange={(event) =>
-            handleMenuItemClick("formatBlock", event.target.value)
-          }
-          IconComponent={KeyboardArrowDownRoundedIcon}
-        >
-          {formatButtons.map(({ value, label }) => (
-            <MenuItem key={value} value={value}>
-              {label}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+      <CustomSelect
+        value={currentBlockFormat}
+        options={formatButtons.map(({ value, label }) => ({
+          value,
+          label,
+        }))}
+        onChange={(event) =>
+          handleMenuItemClick("formatBlock", event.target.value)
+        }
+        sx={{ minWidth: 120 }}
+      />
 
       <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
 
@@ -226,10 +202,13 @@ export const Toolbar = ({
                 onClick={() => handleButtonClick(command)}
                 size="small"
                 sx={{
-                  color: active ? "primary.main" : "#666",
+                  borderRadius: "4px",
+                  color: active
+                    ? theme.palette.primary.main
+                    : theme.palette.text.secondary,
                   bgcolor: active ? "action.selected" : undefined,
-                  "&:hover": { bgcolor: "#e0e0e0" },
-                  "&:active": { bgcolor: "#d5d5d5" },
+                  "&:hover": { bgcolor: theme.palette.action.hover },
+                  "&:active": { bgcolor: theme.palette.action.selected },
                 }}
               >
                 <Icon fontSize="medium" />
@@ -259,10 +238,13 @@ export const Toolbar = ({
                 onClick={() => handleButtonClick(command)}
                 size="small"
                 sx={{
-                  color: active ? "primary.main" : "#666",
+                  borderRadius: "4px",
+                  color: active
+                    ? theme.palette.primary.main
+                    : theme.palette.text.secondary,
                   bgcolor: active ? "action.selected" : undefined,
-                  "&:hover": { bgcolor: "#e0e0e0" },
-                  "&:active": { bgcolor: "#d5d5d5" },
+                  "&:hover": { bgcolor: theme.palette.action.hover },
+                  "&:active": { bgcolor: theme.palette.action.selected },
                 }}
               >
                 <Icon fontSize="medium" />
@@ -290,10 +272,13 @@ export const Toolbar = ({
                 onClick={() => handleButtonClick(command)}
                 size="small"
                 sx={{
-                  color: active ? "primary.main" : "#666",
+                  borderRadius: "4px",
+                  color: active
+                    ? theme.palette.primary.main
+                    : theme.palette.text.secondary,
                   bgcolor: active ? "action.selected" : undefined,
-                  "&:hover": { bgcolor: "#e0e0e0" },
-                  "&:active": { bgcolor: "#d5d5d5" },
+                  "&:hover": { bgcolor: theme.palette.action.hover },
+                  "&:active": { bgcolor: theme.palette.action.selected },
                 }}
               >
                 <Icon fontSize="medium" />

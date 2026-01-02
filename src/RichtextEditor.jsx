@@ -1,7 +1,7 @@
 import React, { useCallback, useRef, useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { Box } from "@mui/material";
-import { styled } from "@mui/material/styles";
+import { styled, useTheme } from "@mui/material/styles";
 import {
   applyFormatting,
   insertLink,
@@ -12,12 +12,48 @@ import { LinkTooltip } from "./LinkTooltip";
 import { Toolbar } from "./Toolbar";
 
 /**
+ * Design tokens from Figma
+ */
+const designTokens = {
+  colors: {
+    borderPrimary: "#0b89d1",
+    textDefault: "#536886",
+    textPrimary: "#0b89d1",
+    surfaceBase: "#ffffff",
+  },
+  spacing: {
+    spacing1: "8px",
+    spacing1_5: "12px",
+  },
+  borderRadius: "4px",
+  typography: {
+    inputText: {
+      fontFamily: "'Roboto', sans-serif",
+      fontSize: "14px",
+      fontWeight: 400,
+      lineHeight: "24px",
+    },
+    inputLabel: {
+      fontFamily: "'Roboto', sans-serif",
+      fontSize: "12px",
+      fontWeight: 400,
+      lineHeight: "16px",
+    },
+  },
+};
+
+/**
  * Styled editor component with rich text formatting styles
  */
 const StyledEditor = styled(Box)(({ theme }) => ({
-  padding: theme.spacing(1, 1.5),
+  padding: `${designTokens.spacing.spacing1} ${designTokens.spacing.spacing1_5}`,
   paddingTop: theme.spacing(0),
   outline: "none",
+  fontFamily: designTokens.typography.inputText.fontFamily,
+  fontSize: designTokens.typography.inputText.fontSize,
+  fontWeight: designTokens.typography.inputText.fontWeight,
+  lineHeight: designTokens.typography.inputText.lineHeight,
+  color: theme.palette.text.primary,
   "& p": {
     margin: `${theme.spacing(1)}px 0`,
     "&:first-of-type": { marginTop: 0 },
@@ -52,17 +88,17 @@ const StyledEditor = styled(Box)(({ theme }) => ({
     margin: `${theme.spacing(0.5)}px 0`,
   },
   "& blockquote": {
-    borderLeft: "4px solid #ccc",
+    borderLeft: `4px solid ${theme.palette.primary.main}`,
     paddingLeft: theme.spacing(2),
     fontStyle: "italic",
     margin: `${theme.spacing(2)}px 0`,
-    color: "#666",
+    color: theme.palette.text.secondary,
   },
   "& a": {
     color: theme.palette.primary.main,
     textDecoration: "underline",
     "&:hover": {
-      color: theme.palette.primary.dark,
+      opacity: 0.8,
     },
   },
   "& strong": { fontWeight: "bold" },
@@ -86,8 +122,11 @@ export const RichTextEditor = ({
   maxHeight = null,
   sx = {},
   style,
-  theme,
 }) => {
+  // Get MUI theme from parent
+  const theme = useTheme();
+  const isDarkMode = theme.palette.mode === "dark";
+
   // Refs for DOM elements
   const editorRef = useRef(null);
   const tooltipRef = useRef(null);
@@ -107,6 +146,9 @@ export const RichTextEditor = ({
   const [storedRange, setStoredRange] = useState(null);
   const [isFocused, setIsFocused] = useState(false);
   const [currentBlockFormat, setCurrentBlockFormat] = useState("p");
+  const [isEmpty, setIsEmpty] = useState(() => {
+    return !value || value === "<br>" || value === "<p><br></p>";
+  });
 
   // Current inline format states
   const [currentInlineFormats, setCurrentInlineFormats] = useState({
@@ -124,6 +166,9 @@ export const RichTextEditor = ({
     if (editorRef.current && value !== editorRef.current.innerHTML) {
       editorRef.current.innerHTML = value;
     }
+    // Update isEmpty state when value prop changes
+    const contentEmpty = !value || value === "<br>" || value === "<p><br></p>";
+    setIsEmpty(contentEmpty);
   }, [value]);
 
   /**
@@ -150,6 +195,9 @@ export const RichTextEditor = ({
         const charLeftLength = countContentRealLength(html);
         setCharLeft(charLeftLength);
       }
+      // Update isEmpty state
+      const contentEmpty = !html || html === "<br>" || html === "<p><br></p>";
+      setIsEmpty(contentEmpty);
       onChange({ target: { name, value: html } });
       updateCurrentBlockFormat();
       updateCurrentInlineFormats();
@@ -341,34 +389,33 @@ export const RichTextEditor = ({
   }, [updateCurrentBlockFormat]);
 
   // Add event listeners for selection changes
+  // Note: selectionchange is a document-level event, not element-level
   useEffect(() => {
     const updateFormats = () => {
       updateCurrentBlockFormat();
       updateCurrentInlineFormats();
     };
 
-    if (editorRef?.current) {
-      editorRef.current.addEventListener("selectionchange", updateFormats);
-    }
+    document.addEventListener("selectionchange", updateFormats);
 
     return () => {
-      if (editorRef?.current) {
-        editorRef.current.removeEventListener("selectionchange", updateFormats);
-      }
+      document.removeEventListener("selectionchange", updateFormats);
     };
-  }, [editorRef, updateCurrentBlockFormat, updateCurrentInlineFormats]);
+  }, [updateCurrentBlockFormat, updateCurrentInlineFormats]);
 
   return (
     <Box
       ref={containerRef}
       tabIndex={-1}
       sx={{
-        border: "1px solid #e0e0e0",
-        borderRadius: (theme) => theme.spacing(1),
+        border: `1px solid ${maxChars && charLeft > maxChars ? theme.palette.error.main : theme.palette.primary.main}`,
+        borderRadius: designTokens.borderRadius,
         "&:focus-within": {
-          borderColor: (theme) => theme.palette.primary.main,
+          borderColor: maxChars && charLeft > maxChars ? theme.palette.error.main : theme.palette.primary.main,
         },
-        color: theme?.palette?.secondary?.main || "#666",
+        color: theme.palette.text.primary,
+        backgroundColor: theme.palette.background.paper,
+        fontFamily: designTokens.typography.inputText.fontFamily,
         ...sx,
       }}
       style={style}
@@ -409,22 +456,23 @@ export const RichTextEditor = ({
         />
 
         {/* Placeholder text */}
-        {(!editorRef.current || editorRef.current.innerHTML === "") &&
-          charLeft < 1 &&
-          !isFocused && (
-            <Box
-              sx={{
-                position: "absolute",
-                top: 1,
-                left: 16,
-                color: "#999",
-                pointerEvents: "none",
-                userSelect: "none",
-              }}
-            >
-              {placeholder}
-            </Box>
-          )}
+        {isEmpty && !isFocused && (
+          <Box
+            sx={{
+              position: "absolute",
+              top: designTokens.spacing.spacing1,
+              left: designTokens.spacing.spacing1_5,
+              color: theme.palette.text.secondary,
+              pointerEvents: "none",
+              userSelect: "none",
+              fontFamily: designTokens.typography.inputText.fontFamily,
+              fontSize: designTokens.typography.inputText.fontSize,
+              lineHeight: designTokens.typography.inputText.lineHeight,
+            }}
+          >
+            {placeholder}
+          </Box>
+        )}
 
         {/* Link tooltip */}
         {showLinkTooltip && (
@@ -442,25 +490,35 @@ export const RichTextEditor = ({
           />
         )}
 
-        {/* Character counter */}
+        {/* Character counter - styled as floating label */}
         {maxChars && (
           <Box
             sx={{
               position: "absolute",
-              bottom: 0,
-              transform: ({ belowNumerator }) =>
-                belowNumerator ? "unset" : "translateY(50%)",
-              right: theme?.spacing?.(1) || 8,
-              color:
-                charLeft > maxChars ? "#f44336" : isFocused ? "#666" : "#999",
-              fontSize: "12px",
-              fontWeight: "400",
-              lineHeight: "16px",
-              background: "#fff",
-              paddingInline: theme?.spacing?.(1) || 8,
+              bottom: "-1px",
+              right: "11px",
+              height: "2px",
+              display: "flex",
+              alignItems: "center",
+              padding: "0 4px",
+              background: theme.palette.background.paper,
             }}
           >
-            {`${charLeft}/${maxChars}`}
+            <Box
+              sx={{
+                color:
+                  charLeft > maxChars
+                    ? theme.palette.error.main
+                    : theme.palette.primary.main,
+                fontFamily: designTokens.typography.inputLabel.fontFamily,
+                fontSize: designTokens.typography.inputLabel.fontSize,
+                fontWeight: designTokens.typography.inputLabel.fontWeight,
+                lineHeight: designTokens.typography.inputLabel.lineHeight,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {`${charLeft}/${maxChars}`}
+            </Box>
           </Box>
         )}
       </Box>
@@ -492,8 +550,6 @@ RichTextEditor.propTypes = {
   sx: PropTypes.object,
   /** Additional inline styles */
   style: PropTypes.object,
-  /** Theme object for styling */
-  theme: PropTypes.object,
 };
 
 // Default props
@@ -509,5 +565,4 @@ RichTextEditor.defaultProps = {
   maxHeight: null,
   sx: {},
   style: undefined,
-  theme: undefined,
 };

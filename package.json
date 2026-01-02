@@ -1,9 +1,19 @@
 {
   "name": "material-ui-rich-editor",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "A rich text editor for Material-UI",
   "main": "dist/index.js",
   "module": "dist/index.es.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
   "scripts": {
     "build": "rollup -c",
     "start": "rollup -c -w"
@@ -25,9 +35,13 @@
   },
   "homepage": "https://github.com/henil0602/mui-richtext-editor#readme",
   "peerDependencies": {
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "react-scripts": "5.0.1"
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0",
+    "@mui/material": "^6.0.0",
+    "@mui/icons-material": "^6.0.0",
+    "@emotion/react": "^11.0.0",
+    "@emotion/styled": "^11.0.0",
+    "prop-types": "^15.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.11.6",
@@ -41,15 +55,5 @@
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-terser": "^0.4.4"
   },
-  "dependencies": {
-    "draft-js": "^0.11.7",
-    "draftjs-to-html": "^0.9.1",
-    "html-to-draftjs": "^1.5.0",
-    "prop-types": "^15.7.2",
-    "@emotion/react": "^11.11.1",
-    "@emotion/styled": "^11.11.0",
-    "@mui/icons-material": "^5.17.1",
-    "@mui/material": "^5.17.1",
-    "@mui/styles": "5.17.1"
-  }
+  "dependencies": {}
 }

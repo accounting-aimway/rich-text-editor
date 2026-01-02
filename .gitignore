@@ -1,7 +1,8 @@
 /node_modules
-package-lock.json
-.env
-.env.task-saurav
+/demo/node_modules
+/package-lock.json
+/.env
+/.env.task-saurav
 /pre-test/.env
 /pre-test/logs/
 .nyc_output/
@@ -9,4 +10,4 @@ package-lock.json
 /logs
 .DS_STORE
 pre-test/logs
-dist/*
+/dist
