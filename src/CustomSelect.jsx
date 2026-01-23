@@ -135,7 +135,7 @@ export const CustomSelect = ({
   };
 
   return (
-    <SelectContainer sx={sx}>
+    <SelectContainer className="notranslate" translate="no" sx={sx}>
       <SelectInput
         ref={anchorRef}
         onClick={handleClick}
@@ -204,16 +204,13 @@ export const CustomSelect = ({
               onClick={() => handleSelect(option.value)}
               selected={option.value === value}
               sx={{
-                height: "28px",
-                minHeight: "28px",
+                minHeight: "auto !important",
+                height: "auto !important",
                 minWidth: 200,
                 pl: "16px",
                 pr: "12px",
-                py: 0,
+                py: "6px",
                 fontFamily: tokens.typography.inputText.fontFamily,
-                fontSize: tokens.typography.inputText.fontSize,
-                fontWeight: tokens.typography.inputText.fontWeight,
-                lineHeight: "16px",
                 color: theme.palette.text.secondary,
                 "&.Mui-selected": {
                   backgroundColor: theme.palette.action.selected,
@@ -226,7 +223,15 @@ export const CustomSelect = ({
                 },
               }}
             >
-              {option.label}
+              <Box
+                sx={{
+                  fontSize: option.fontSize || tokens.typography.inputText.fontSize,
+                  fontWeight: option.fontWeight || tokens.typography.inputText.fontWeight,
+                  lineHeight: 1.3,
+                }}
+              >
+                {option.label}
+              </Box>
             </MenuItem>
           ))}
         </Box>
@@ -238,12 +243,14 @@ export const CustomSelect = ({
 CustomSelect.propTypes = {
   /** Current selected value */
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  /** Array of options: [{ value: string, label: string }] */
+  /** Array of options: [{ value: string, label: string, fontSize?: string, fontWeight?: number }] */
   options: PropTypes.arrayOf(
     PropTypes.shape({
       value: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
         .isRequired,
       label: PropTypes.string.isRequired,
+      fontSize: PropTypes.string,
+      fontWeight: PropTypes.number,
     })
   ).isRequired,
   /** Callback when value changes */

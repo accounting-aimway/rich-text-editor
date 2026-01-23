@@ -7,9 +7,17 @@ import {
   insertLink,
   countContentRealLength,
   getCurrentBlockFormat,
+  insertImage,
+  cleanupEditorHTML,
 } from "./utils/editorsUtils";
 import { LinkTooltip } from "./LinkTooltip";
-import { Toolbar } from "./Toolbar";
+import {
+  Toolbar,
+  DEFAULT_TOOL_GROUPS,
+  DEFAULT_RIGHT_TOOL_GROUPS,
+  DEFAULT_TEXT_COLORS,
+} from "./Toolbar";
+import { getAutoTranslations, getTranslations } from "./i18n";
 
 /**
  * Design tokens from Figma
@@ -104,6 +112,13 @@ const StyledEditor = styled(Box)(({ theme }) => ({
   "& strong": { fontWeight: "bold" },
   "& em": { fontStyle: "italic" },
   "& u": { textDecoration: "underline" },
+  "& img": {
+    maxWidth: "100%",
+    height: "auto",
+    display: "block",
+    margin: "8px 0",
+    borderRadius: "4px",
+  },
 }));
 
 /**
@@ -115,17 +130,53 @@ export const RichTextEditor = ({
   value = "",
   onChange = () => {},
   onBlur,
-  placeholder = "Start typing...",
+  placeholder,
   maxChars = null,
   height = "auto",
   minHeight = "150px",
   maxHeight = null,
   sx = {},
   style,
+  toolGroups = DEFAULT_TOOL_GROUPS,
+  toolTitles = {},
+  headingOptions,
+  onImageUpload,
+  locale,
+  translations = {},
+  TooltipComponent,
+  rightToolGroups = DEFAULT_RIGHT_TOOL_GROUPS,
+  onSearch,
+  onHelp,
+  textColors = DEFAULT_TEXT_COLORS,
 }) => {
   // Get MUI theme from parent
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === "dark";
+
+  // Get base translations - either from specified locale or auto-detected
+  const baseTranslations = locale
+    ? getTranslations(locale)
+    : getAutoTranslations();
+
+  // Merge custom translations with base translations
+  const mergedTranslations = {
+    ...baseTranslations,
+    ...translations,
+    toolbar: { ...baseTranslations.toolbar, ...(translations.toolbar || {}) },
+    headings: {
+      ...baseTranslations.headings,
+      ...(translations.headings || {}),
+    },
+    linkTooltip: {
+      ...baseTranslations.linkTooltip,
+      ...(translations.linkTooltip || {}),
+    },
+    editor: { ...baseTranslations.editor, ...(translations.editor || {}) },
+  };
+
+  // Get placeholder from prop or translations
+  const resolvedPlaceholder =
+    placeholder || mergedTranslations.editor.placeholder;
 
   // Refs for DOM elements
   const editorRef = useRef(null);
@@ -140,7 +191,7 @@ export const RichTextEditor = ({
   });
   const [currentLink, setCurrentLink] = useState("");
   const [charLeft, setCharLeft] = useState(
-    maxChars ? countContentRealLength(value) : null
+    maxChars ? countContentRealLength(value) : null,
   );
   const [isLinkEdit, setIsLinkEdit] = useState(false);
   const [storedRange, setStoredRange] = useState(null);
@@ -159,6 +210,10 @@ export const RichTextEditor = ({
     link: false,
     unorderedList: false,
     orderedList: false,
+    justifyLeft: false,
+    justifyCenter: false,
+    justifyRight: false,
+    justifyFull: false,
   });
 
   // Update editor content when value prop changes
@@ -259,13 +314,25 @@ export const RichTextEditor = ({
         return;
       }
 
+      if (command === "insertImage") {
+        insertImage(value);
+        handleInput();
+        return;
+      }
+
       applyFormatting(command, value);
+
+      // Clean up malformed HTML after block format changes
+      if (command === "formatBlock") {
+        cleanupEditorHTML(editorRef.current);
+      }
+
       editorRef.current?.focus();
       handleInput();
       updateCurrentBlockFormat();
       updateCurrentInlineFormats();
     },
-    [handleInput, updateCurrentInlineFormats, updateCurrentBlockFormat]
+    [handleInput, updateCurrentInlineFormats, updateCurrentBlockFormat],
   );
 
   /**
@@ -279,7 +346,7 @@ export const RichTextEditor = ({
       setStoredRange(null);
       handleInput();
     },
-    [handleInput, storedRange]
+    [handleInput, storedRange],
   );
 
   /**
@@ -343,9 +410,15 @@ export const RichTextEditor = ({
             break;
           case "z":
             e.preventDefault();
-            handleFormat("undo");
+            // Cmd+Shift+Z or Ctrl+Shift+Z = Redo, Cmd+Z or Ctrl+Z = Undo
+            if (e.shiftKey) {
+              handleFormat("redo");
+            } else {
+              handleFormat("undo");
+            }
             break;
           case "y":
+            // Ctrl+Y = Redo (Windows/Linux)
             e.preventDefault();
             handleFormat("redo");
             break;
@@ -365,7 +438,7 @@ export const RichTextEditor = ({
         setStoredRange(null);
       }
     },
-    [handleFormat]
+    [handleFormat],
   );
 
   /**
@@ -385,6 +458,10 @@ export const RichTextEditor = ({
       link: document.queryCommandState("createLink"),
       unorderedList: document.queryCommandState("insertUnorderedList"),
       orderedList: document.queryCommandState("insertOrderedList"),
+      justifyLeft: document.queryCommandState("justifyLeft"),
+      justifyCenter: document.queryCommandState("justifyCenter"),
+      justifyRight: document.queryCommandState("justifyRight"),
+      justifyFull: document.queryCommandState("justifyFull"),
     });
   }, [updateCurrentBlockFormat]);
 
@@ -411,7 +488,10 @@ export const RichTextEditor = ({
         border: `1px solid ${maxChars && charLeft > maxChars ? theme.palette.error.main : theme.palette.primary.main}`,
         borderRadius: designTokens.borderRadius,
         "&:focus-within": {
-          borderColor: maxChars && charLeft > maxChars ? theme.palette.error.main : theme.palette.primary.main,
+          borderColor:
+            maxChars && charLeft > maxChars
+              ? theme.palette.error.main
+              : theme.palette.primary.main,
         },
         color: theme.palette.text.primary,
         backgroundColor: theme.palette.background.paper,
@@ -431,17 +511,26 @@ export const RichTextEditor = ({
       {/* Toolbar */}
       <Toolbar
         onFormat={handleFormat}
-        showStrikethrough
-        showCleanFormat
+        toolGroups={toolGroups}
+        toolTitles={toolTitles}
+        headingOptions={headingOptions}
         currentBlockFormat={currentBlockFormat}
         currentInlineFormats={currentInlineFormats}
+        onImageUpload={onImageUpload}
+        translations={mergedTranslations}
+        TooltipComponent={TooltipComponent}
+        rightToolGroups={rightToolGroups}
+        onSearch={onSearch}
+        onHelp={onHelp}
+        textColors={textColors}
       />
-
       {/* Editor content area */}
       <Box style={{ position: "relative" }}>
         <StyledEditor
           ref={editorRef}
           contentEditable
+          className="notranslate"
+          translate="no"
           onFocus={() => setIsFocused(true)}
           onInput={handleInput}
           onClick={handleClick}
@@ -470,7 +559,7 @@ export const RichTextEditor = ({
               lineHeight: designTokens.typography.inputText.lineHeight,
             }}
           >
-            {placeholder}
+            {resolvedPlaceholder}
           </Box>
         )}
 
@@ -487,6 +576,7 @@ export const RichTextEditor = ({
             isEdit={isLinkEdit}
             tooltipRef={tooltipRef}
             storedRange={storedRange}
+            translations={mergedTranslations.linkTooltip}
           />
         )}
 
@@ -550,6 +640,38 @@ RichTextEditor.propTypes = {
   sx: PropTypes.object,
   /** Additional inline styles */
   style: PropTypes.object,
+  /** Array of tool group arrays defining which toolbar tools to show */
+  toolGroups: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.string)),
+  /** Custom tooltip titles for toolbar tools */
+  toolTitles: PropTypes.objectOf(PropTypes.string),
+  /** Custom heading dropdown options */
+  headingOptions: PropTypes.arrayOf(
+    PropTypes.shape({
+      value: PropTypes.string.isRequired,
+      label: PropTypes.string.isRequired,
+    }),
+  ),
+  /** Custom image upload handler - receives File object */
+  onImageUpload: PropTypes.func,
+  /** Locale code for translations (e.g., "en", "de"). Auto-detected if not provided. */
+  locale: PropTypes.string,
+  /** Custom translations to override defaults */
+  translations: PropTypes.shape({
+    toolbar: PropTypes.object,
+    headings: PropTypes.object,
+    linkTooltip: PropTypes.object,
+    editor: PropTypes.object,
+  }),
+  /** Custom Tooltip component to use instead of MUI Tooltip */
+  TooltipComponent: PropTypes.elementType,
+  /** Array of tool group arrays for right side of toolbar */
+  rightToolGroups: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.string)),
+  /** Callback when search button is clicked */
+  onSearch: PropTypes.func,
+  /** Callback when help button is clicked */
+  onHelp: PropTypes.func,
+  /** Custom color palette for text color picker */
+  textColors: PropTypes.arrayOf(PropTypes.string),
 };
 
 // Default props
@@ -558,11 +680,22 @@ RichTextEditor.defaultProps = {
   value: "",
   onChange: () => {},
   onBlur: undefined,
-  placeholder: "Start typing...",
+  placeholder: undefined,
   maxChars: null,
   height: "auto",
   minHeight: "150px",
   maxHeight: null,
   sx: {},
   style: undefined,
+  toolGroups: DEFAULT_TOOL_GROUPS,
+  toolTitles: {},
+  headingOptions: undefined,
+  onImageUpload: undefined,
+  locale: undefined,
+  translations: {},
+  TooltipComponent: undefined,
+  rightToolGroups: DEFAULT_RIGHT_TOOL_GROUPS,
+  onSearch: undefined,
+  onHelp: undefined,
+  textColors: DEFAULT_TEXT_COLORS,
 };

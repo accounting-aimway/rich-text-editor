@@ -1,6 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
 import PropTypes from "prop-types";
-import { Box, Button, Paper, TextField, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  IconButton,
+  Paper,
+  TextField,
+  Typography,
+} from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+import { getAutoTranslations } from "./i18n";
 
 /**
  * LinkTooltip component for inserting and editing links
@@ -14,7 +23,11 @@ export const LinkTooltip = ({
   isEdit = false,
   tooltipRef,
   storedRange,
+  translations = {},
 }) => {
+  // Get auto-detected translations and merge with custom translations
+  const baseTranslations = getAutoTranslations().linkTooltip;
+  const t = { ...baseTranslations, ...translations };
   const [url, setUrl] = useState(initialValue);
   const inputRef = useRef(null);
 
@@ -74,7 +87,7 @@ export const LinkTooltip = ({
 
   return (
     <Paper
-      elevation={4}
+      elevation={0}
       ref={tooltipRef}
       sx={{
         position: "absolute",
@@ -82,71 +95,144 @@ export const LinkTooltip = ({
         top: position.y,
         transform: "translateX(-50%)",
         zIndex: 1000,
-        p: 2,
-        minWidth: 320,
-        maxWidth: 400,
+        p: "48px",
+        minWidth: 430,
+        maxWidth: 450,
+        borderRadius: "16px",
+        boxShadow: "0px 4px 16px 0px rgba(87, 104, 131, 0.2)",
+        display: "flex",
+        flexDirection: "column",
+        gap: "24px",
       }}
     >
+      {/* Header with title and close button */}
       <Box
-        component="form"
-        sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+        sx={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: "24px",
+          width: "100%",
+        }}
       >
-        <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-          {isEdit ? "Edit Link" : "Insert Link"}
-        </Typography>
-
-        <TextField
-          inputRef={inputRef}
-          fullWidth
-          size="small"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Enter URL (e.g., https://example.com)"
-          variant="outlined"
-        />
-
-        <Box
+        <Typography
           sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
+            fontFamily: "Roboto, sans-serif",
+            fontWeight: 700,
+            fontSize: "24px",
+            lineHeight: "32px",
+            color: "#536886",
+            flex: 1,
           }}
         >
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <Button
-              variant="contained"
-              size="small"
-              disabled={!url.trim()}
-              sx={{ textTransform: "none" }}
-              onClick={handleSubmit}
-            >
-              {isEdit ? "Update" : "Insert"}
-            </Button>
-            <Button
-              type="button"
-              variant="outlined"
-              size="small"
-              onClick={onClose}
-              sx={{ textTransform: "none" }}
-            >
-              Cancel
-            </Button>
-          </Box>
+          {isEdit ? t.editTitle : t.insertTitle}
+        </Typography>
+        <IconButton
+          onClick={onClose}
+          sx={{
+            p: "4px",
+            borderRadius: "4px",
+            color: "#536886",
+            "&:hover": {
+              backgroundColor: "rgba(83, 104, 134, 0.08)",
+            },
+          }}
+        >
+          <CloseIcon sx={{ fontSize: 24 }} />
+        </IconButton>
+      </Box>
 
-          {isEdit && (
-            <Button
-              type="button"
-              variant="contained"
-              color="error"
-              size="small"
-              onClick={handleRemoveLink}
-              sx={{ textTransform: "none" }}
-            >
-              Remove
-            </Button>
-          )}
-        </Box>
+      {/* URL Input */}
+      <TextField
+        inputRef={inputRef}
+        fullWidth
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder={t.placeholder}
+        variant="outlined"
+        sx={{
+          "& .MuiOutlinedInput-root": {
+            height: "40px",
+            borderRadius: "4px",
+            fontFamily: "Roboto, sans-serif",
+            fontSize: "14px",
+            lineHeight: "24px",
+            color: "#536886",
+            "& fieldset": {
+              borderColor: "#e5e8ec",
+            },
+            "&:hover fieldset": {
+              borderColor: "#0b89d1",
+            },
+            "&.Mui-focused fieldset": {
+              borderColor: "#0b89d1",
+            },
+          },
+          "& .MuiOutlinedInput-input": {
+            padding: "8px 12px",
+          },
+        }}
+      />
+
+      {/* Action buttons */}
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "flex-end",
+          alignItems: "center",
+          gap: "16px",
+          width: "100%",
+        }}
+      >
+        {isEdit && (
+          <Button
+            type="button"
+            onClick={handleRemoveLink}
+            sx={{
+              backgroundColor: "#def3ff",
+              color: "#0b89d1",
+              fontFamily: "Roboto, sans-serif",
+              fontWeight: 700,
+              fontSize: "14px",
+              lineHeight: "16px",
+              letterSpacing: "0.8px",
+              textTransform: "uppercase",
+              padding: "12px 16px",
+              borderRadius: "4px",
+              "&:hover": {
+                backgroundColor: "#c5e8fc",
+              },
+            }}
+          >
+            {t.remove}
+          </Button>
+        )}
+        <Button
+          onClick={handleSubmit}
+          disabled={!url.trim()}
+          sx={{
+            backgroundColor: "#0b89d1",
+            color: "#ffffff",
+            fontFamily: "Roboto, sans-serif",
+            fontWeight: 700,
+            fontSize: "14px",
+            lineHeight: "16px",
+            letterSpacing: "0.8px",
+            textTransform: "uppercase",
+            padding: "12px 16px",
+            borderRadius: "4px",
+            "&:hover": {
+              backgroundColor: "#0976b5",
+            },
+            "&.Mui-disabled": {
+              backgroundColor: "rgba(11, 137, 209, 0.5)",
+              color: "rgba(255, 255, 255, 0.7)",
+            },
+          }}
+        >
+          {isEdit ? t.update : t.insert}
+        </Button>
       </Box>
     </Paper>
   );
@@ -174,6 +260,16 @@ LinkTooltip.propTypes = {
   ]),
   /** Stored range for link editing */
   storedRange: PropTypes.object,
+  /** Custom translations for the link tooltip */
+  translations: PropTypes.shape({
+    insertTitle: PropTypes.string,
+    editTitle: PropTypes.string,
+    placeholder: PropTypes.string,
+    insert: PropTypes.string,
+    update: PropTypes.string,
+    cancel: PropTypes.string,
+    remove: PropTypes.string,
+  }),
 };
 
 // Default props
@@ -182,4 +278,5 @@ LinkTooltip.defaultProps = {
   isEdit: false,
   tooltipRef: null,
   storedRange: null,
+  translations: {},
 };
