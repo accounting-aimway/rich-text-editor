@@ -1,6 +1,6 @@
 import React, { useCallback, useRef, useState, useEffect } from "react";
 import PropTypes from "prop-types";
-import { Box } from "@mui/material";
+import { Box, Divider } from "@mui/material";
 import { styled, useTheme } from "@mui/material/styles";
 import {
   applyFormatting,
@@ -524,6 +524,8 @@ export const RichTextEditor = ({
         onHelp={onHelp}
         textColors={textColors}
       />
+      {/* Divider between toolbar and editor */}
+      <Divider sx={{ borderColor: theme.palette.divider }} />
       {/* Editor content area */}
       <Box style={{ position: "relative" }}>
         <StyledEditor

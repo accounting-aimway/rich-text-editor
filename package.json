@@ -1,5 +1,5 @@
 {
-  "name": "material-ui-rich-editor",
+  "name": "@sonar/rich-text-editor",
   "version": "0.2.0",
   "description": "A rich text editor for Material-UI",
   "main": "dist/index.js",
