@@ -388,9 +388,11 @@ export const Toolbar = ({
   onSearch,
   onHelp,
   textColors = DEFAULT_TEXT_COLORS,
+  disabled = false,
 }) => {
   const theme = useTheme();
   const imageInputRef = useRef(null);
+  const imageSelectionRangeRef = useRef(null);
   const [colorAnchorEl, setColorAnchorEl] = useState(null);
   const [currentTextColor, setCurrentTextColor] = useState("#536886");
   const [colorSelectionRange, setColorSelectionRange] = useState(null);
@@ -431,6 +433,13 @@ export const Toolbar = ({
   const handleImageSelect = (e) => {
     const file = e.target.files?.[0];
     if (file && file.type.startsWith("image/")) {
+      // Restore the selection that was saved before the file dialog opened
+      if (imageSelectionRangeRef.current) {
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(imageSelectionRangeRef.current);
+        imageSelectionRangeRef.current = null;
+      }
       if (onImageUpload) {
         onImageUpload(file);
       } else {
@@ -562,6 +571,7 @@ export const Toolbar = ({
           <TooltipWrapper title={tooltipTitle} placement="top">
             <IconButton
               onClick={() => imageInputRef.current?.click()}
+              disabled={disabled}
               size="small"
               className="notranslate"
               translate="no"
@@ -589,14 +599,16 @@ export const Toolbar = ({
         <React.Fragment key={toolKey}>
           <TooltipWrapper title={tooltipTitle} placement="top">
             <Box
-              onClick={handleColorClick}
+              onClick={disabled ? undefined : handleColorClick}
               sx={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 borderRadius: "4px",
-                cursor: "pointer",
-                "&:hover": { bgcolor: theme.palette.action.hover },
+                cursor: disabled ? "default" : "pointer",
+                opacity: disabled ? 0.38 : 1,
+                pointerEvents: disabled ? "none" : "auto",
+                "&:hover": { bgcolor: disabled ? undefined : theme.palette.action.hover },
               }}
             >
               {/* Icon container with 4px padding */}
@@ -674,6 +686,7 @@ export const Toolbar = ({
         <TooltipWrapper key={toolKey} title={tooltipTitle} placement="top">
           <IconButton
             onClick={handleSearchClick}
+            disabled={disabled}
             size="small"
             className="notranslate"
             translate="no"
@@ -699,6 +712,7 @@ export const Toolbar = ({
         <TooltipWrapper key={toolKey} title={tooltipTitle} placement="top">
           <IconButton
             onClick={handleHelpClick}
+            disabled={disabled}
             size="small"
             className="notranslate"
             translate="no"
@@ -722,6 +736,7 @@ export const Toolbar = ({
       <TooltipWrapper key={toolKey} title={tooltipTitle} placement="top">
         <IconButton
           onClick={() => handleButtonClick(tool.command)}
+          disabled={disabled}
           size="small"
           className="notranslate"
           translate="no"
@@ -758,6 +773,7 @@ export const Toolbar = ({
           onChange={(event) =>
             handleButtonClick("formatBlock", event.target.value)
           }
+          disabled={disabled}
           sx={{ minWidth: 120 }}
         />
       );
@@ -800,6 +816,10 @@ export const Toolbar = ({
     <Box
       className="notranslate"
       translate="no"
+      onMouseDown={(e) => {
+        // Prevent toolbar clicks from stealing focus from the editor
+        e.preventDefault();
+      }}
       sx={{
         px: "8px",
         py: "4px",
@@ -895,6 +915,8 @@ Toolbar.propTypes = {
   onHelp: PropTypes.func,
   /** Custom color palette for text color picker */
   textColors: PropTypes.arrayOf(PropTypes.string),
+  /** Whether the toolbar is disabled (editor not focused) */
+  disabled: PropTypes.bool,
 };
 
 // Default props
@@ -911,4 +933,5 @@ Toolbar.defaultProps = {
   onSearch: undefined,
   onHelp: undefined,
   textColors: DEFAULT_TEXT_COLORS,
+  disabled: false,
 };

@@ -523,6 +523,7 @@ export const RichTextEditor = ({
         onSearch={onSearch}
         onHelp={onHelp}
         textColors={textColors}
+        disabled={!isFocused}
       />
       {/* Divider between toolbar and editor */}
       <Divider sx={{ borderColor: theme.palette.divider }} />
